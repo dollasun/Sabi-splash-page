@@ -322,8 +322,9 @@ input[aria-invalid=true]:focus,select[aria-invalid=true]:focus{box-shadow:0 0 0 
 /* ---------- Motion ---------- */
 @media (prefers-reduced-motion:no-preference){
   /* Hero entrance */
-  .js .hero-brand,.js .hero-photo,.js .hero-copy > :not(h1),.js .scroll-cue{animation:rise .9s var(--ease-out) both}
-  .js .hero-photo{animation-delay:.08s}
+  .js .hero-brand,.js .hero-copy > :not(h1),.js .scroll-cue{animation:rise .9s var(--ease-out) both}
+  /* The photo is the LCP element: move it, never hide it, so it paints immediately */
+  .js .hero-photo{animation:riseSolid 1s var(--ease-out) both}
   .js .hero-img img{animation:settle 1.8s var(--ease-out) both}
   .js .hero h1 .line > *{animation:lineUp .95s var(--ease-out) both}
   .js .hero h1 .line:nth-child(1) > *{animation-delay:.18s}
@@ -341,6 +342,7 @@ input[aria-invalid=true]:focus,select[aria-invalid=true]:focus{box-shadow:0 0 0 
   .js .film[data-reveal]{transform:translateY(26px) scale(.97)}
   .js .film[data-reveal].in{transform:none}
 }
+@keyframes riseSolid{from{transform:translateY(12px)}to{transform:none}}
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
 @keyframes lineUp{from{transform:translateY(105%)}to{transform:none}}
 @keyframes settle{from{transform:scale(1.08)}to{transform:scale(1)}}
