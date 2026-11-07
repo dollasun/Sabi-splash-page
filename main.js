@@ -25,7 +25,8 @@
   const cancelScroll = () => { if (scrollAnim) { cancelAnimationFrame(scrollAnim); scrollAnim = 0; } };
   ["wheel", "touchstart", "keydown"].forEach(t => addEventListener(t, cancelScroll, { passive: true }));
 
-  const easeInOutQuart = t => (t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2);
+  // Gentle S-curve: slow start, long glide, soft landing
+  const easeInOutCubic = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
   function scrollToTarget(target, onDone) {
     cancelScroll();
@@ -39,11 +40,11 @@
       onDone && onDone();
       return;
     }
-    const duration = Math.min(1150, Math.max(520, 380 + Math.abs(dist) * 0.32));
+    const duration = Math.min(2400, Math.max(1100, 900 + Math.abs(dist) * 0.55));
     const t0 = performance.now();
     const step = now => {
       const p = Math.min(1, (now - t0) / duration);
-      scrollTo(0, startY + dist * easeInOutQuart(p));
+      scrollTo(0, startY + dist * easeInOutCubic(p));
       if (p < 1) scrollAnim = raf(step);
       else { scrollAnim = 0; onDone && onDone(); }
     };
@@ -57,7 +58,6 @@
     const target = document.getElementById(id);
     if (!target) return;
     e.preventDefault();
-    if (menuOpen) closeMenu(false);
     scrollToTarget(target, () => {
       // Move focus for keyboard + screen-reader users without a second jump
       if (id !== "top") {
@@ -68,35 +68,6 @@
     });
     history.replaceState(null, "", id === "top" ? location.pathname : "#" + id);
   });
-
-  /* ---------------- Mobile menu ---------------- */
-  const menuBtn = $(".menu-btn");
-  const menu = $("#mobile-menu");
-  let menuOpen = false;
-  let menuTimer = 0;
-
-  function openMenu() {
-    clearTimeout(menuTimer);
-    menuOpen = true;
-    menu.hidden = false;
-    menuBtn.setAttribute("aria-expanded", "true");
-    menuBtn.setAttribute("aria-label", "Close menu");
-    header.classList.add("scrolled");
-    raf(() => raf(() => menu.classList.add("open")));
-  }
-  function closeMenu(returnFocus = true) {
-    if (!menuOpen) return;
-    menuOpen = false;
-    menu.classList.remove("open");
-    menuBtn.setAttribute("aria-expanded", "false");
-    menuBtn.setAttribute("aria-label", "Open menu");
-    menuTimer = setTimeout(() => { menu.hidden = true; onScroll(); }, reduceMotion.matches ? 0 : 500);
-    if (returnFocus) menuBtn.focus();
-  }
-  menuBtn.addEventListener("click", () => (menuOpen ? closeMenu() : openMenu()));
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && menuOpen) closeMenu(); });
-  document.addEventListener("click", e => { if (menuOpen && !header.contains(e.target)) closeMenu(false); });
-  desktop.addEventListener("change", () => { if (desktop.matches && menuOpen) closeMenu(false); });
 
   /* ---------------- Active nav + header border ---------------- */
   const navLinks = $$(".nav-link");
@@ -126,7 +97,7 @@
 
   function onScroll() {
     ticking = false;
-    header.classList.toggle("scrolled", scrollY > 8 || menuOpen);
+    header.classList.toggle("scrolled", scrollY > 8);
     const probe = innerHeight * 0.4;
     let current = null;
     sections.forEach(s => {
@@ -215,7 +186,6 @@
     clearTimeout(closeTimer);
     closing = false;
     lastOpener = opener || document.activeElement;
-    if (menuOpen) closeMenu(false);
     cancelScroll();
     document.documentElement.classList.add("modal-open");
     modal.style.removeProperty("--drag");
