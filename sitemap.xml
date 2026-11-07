@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+  <url>
+    <loc>https://sabi-splash-page.vercel.app/</loc>
+    <lastmod>2026-11-07</lastmod>
+    <image:image>
+      <image:loc>https://sabi-splash-page.vercel.app/assets/hero.jpg</image:loc>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://sabi-splash-page.vercel.app/assets/poster.jpg</video:thumbnail_loc>
+      <video:title>How sabi. works: six private steps, from your door to your results</video:title>
+      <video:description>Animated walkthrough, no sound. Order online, delivered discreetly, collect your sample, we arrange collection, off to the lab, results privately.</video:description>
+      <video:content_loc>https://sabi-splash-page.vercel.app/assets/walkthrough.mp4</video:content_loc>
+    </video:video>
+  </url>
+</urlset>

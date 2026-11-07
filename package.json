@@ -1,0 +1,7 @@
+{
+  "name": "sabi-splash-page",
+  "private": true,
+  "type": "module",
+  "description": "sabi. early-access splash page",
+  "engines": { "node": ">=18" }
+}
