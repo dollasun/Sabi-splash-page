@@ -268,12 +268,11 @@
   /* ---------------- Form validation ---------------- */
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+  // Same rule as waitlist-form.js and both server functions
   function normalisePhone(raw) {
-    const d = raw.replace(/\D/g, "");
-    if (!d) return "";
-    if (d.length === 11 && d[0] === "0") return "+234" + d.slice(1);
-    if (d.length === 13 && d.startsWith("234")) return "+" + d;
-    return null; // invalid
+    if (!raw.trim()) return "";
+    const d = raw.replace(/\D/g, "").replace(/^234/, "").replace(/^0/, "");
+    return /^[789]\d{9}$/.test(d) ? "+234" + d : null; // null = invalid
   }
 
   function setErr(input, errId, msg) {
@@ -284,12 +283,11 @@
   const checks = {
     "f-email": () => {
       const v = field("f-email").value.trim();
-      return !v ? "Enter your email so we can reach you."
-        : !EMAIL_RE.test(v) ? "Check your email address. It should look like name@example.com." : "";
+      return !v || !EMAIL_RE.test(v) ? "Please enter a valid email." : "";
     },
-    "f-area": () => (field("f-area").value ? "" : "Choose your area so we know where to launch first."),
+    "f-area": () => (field("f-area").value ? "" : "Please choose your area."),
     "f-phone": () => (normalisePhone(field("f-phone").value) === null
-      ? "Use a Nigerian number, like 0801 234 5678 or +234 801 234 5678." : ""),
+      ? "Please enter a valid Nigerian number, e.g. 0801 234 5678." : ""),
     "f-consent": () => (field("f-consent").checked ? "" : "Please confirm you're 18 or older to join."),
   };
   const errIds = { "f-email": "e-email", "f-area": "e-area", "f-phone": "e-phone", "f-consent": "e-consent" };

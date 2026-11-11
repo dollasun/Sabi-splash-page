@@ -1,125 +1,104 @@
-// Cloudflare Pages Function: POST /api/waitlist
-// Saves the signup to a Brevo list and emails you a notification.
+// sabi. waitlist: sends the #signup form to /api/waitlist (Cloudflare Function -> Brevo).
+// Built for the markup in index.html. Load it BEFORE main.js:
+//   <script src="/waitlist-form.js" defer></script>
+//   <script src="/main.js" defer></script>
 //
-// Environment variables (Cloudflare > your Pages project > Settings > Variables and Secrets):
-//   BREVO_API_KEY   (Secret)    your Brevo API key
-//   BREVO_LIST_ID   (Text)      numeric ID of your "Sabi Waitlist" list, e.g. 3
-//   NOTIFY_EMAIL    (Text)      the inbox that should receive new-signup alerts
-//   SENDER_EMAIL    (Text)      a verified Brevo sender, e.g. hello@getsabi.ng
+// It listens on document in the capture phase, so it runs first and stops any
+// older submit handler in main.js from also firing. main.js keeps handling the
+// modal open/close, FAQ, animations, etc.
 
-const BREVO = "https://api.brevo.com/v3";
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const ERR = { email: "e-email", area: "e-area", phone: "e-phone", consent: "e-consent" };
+  const INPUT = { email: "f-email", area: "f-area", phone: "f-phone", consent: "f-consent" };
 
-// Must match the <option>s in index.html exactly
-const AREAS = [
-  "Ikeja", "Lekki", "Victoria Island", "Ikoyi", "Yaba", "Surulere", "Ajah",
-  "Gbagada", "Festac", "Ikorodu", "Other Lagos area", "Outside Lagos",
-];
-
-export async function onRequestPost({ request, env }) {
-  let data;
-  try {
-    data = await request.json();
-  } catch {
-    return json({ ok: false, error: "Invalid request." }, 400);
+  function clearErrors() {
+    Object.values(ERR).concat("e-form").forEach((id) => { const el = $(id); if (el) el.textContent = ""; });
+    Object.values(INPUT).forEach((id) => { const el = $(id); if (el) el.removeAttribute("aria-invalid"); });
   }
 
-  // Honeypot: real users never fill this hidden field. Bots do.
-  if (data.company) return json({ ok: true });
-
-  const email = String(data.email || "").trim().toLowerCase();
-  const area = String(data.area || "").trim();
-  const firstName = String(data.first_name || "").trim().slice(0, 60);
-  const whatsapp = normalizeNigerianPhone(data.whatsapp);
-  const consent = data.consent === true;
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) {
-    return json({ ok: false, field: "email", error: "Please enter a valid email." }, 400);
-  }
-  if (!AREAS.includes(area)) {
-    return json({ ok: false, field: "area", error: "Please choose your area." }, 400);
-  }
-  if (data.whatsapp && !whatsapp) {
-    return json({ ok: false, field: "phone", error: "Please enter a valid Nigerian number, e.g. 0801 234 5678." }, 400);
-  }
-  if (!consent) {
-    return json({ ok: false, field: "consent", error: "Please confirm you're 18 or older to join." }, 400);
+  function showError(field, msg) {
+    const el = $(ERR[field] || "e-form");
+    if (el) el.textContent = msg;
+    const input = $(INPUT[field]);
+    if (input) { input.setAttribute("aria-invalid", "true"); input.focus(); }
   }
 
-  const headers = {
-    "api-key": env.BREVO_API_KEY,
-    "content-type": "application/json",
-    accept: "application/json",
-  };
+  function validate(p) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p.email)) return ["email", "Please enter a valid email."];
+    if (!p.area) return ["area", "Please choose your area."];
+    if (p.whatsapp) {
+      const d = p.whatsapp.replace(/\D/g, "").replace(/^234/, "").replace(/^0/, "");
+      if (!/^[789]\d{9}$/.test(d)) return ["phone", "Please enter a valid Nigerian number, e.g. 0801 234 5678."];
+    }
+    if (!p.consent) return ["consent", "Please confirm you're 18 or older to join."];
+    return null;
+  }
 
-  // 1) Create or update the contact in Brevo and add to the waitlist
-  const attributes = {
-    FIRSTNAME: firstName || undefined,
-    AREA: area,
-    WHATSAPP: whatsapp || undefined,
-    CONSENT_18_CONTACT: true,
-    CONSENT_AT: new Date().toISOString(),
-    SIGNUP_SOURCE: "getsabi.ng waitlist",
-  };
+  function setBusy(btn, busy) {
+    btn.disabled = busy;
+    btn.setAttribute("aria-busy", String(busy));
+    btn.classList.toggle("is-loading", busy);
+  }
 
-  const contactRes = await fetch(`${BREVO}/contacts`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({
-      email,
-      attributes,
-      listIds: [Number(env.BREVO_LIST_ID)],
-      updateEnabled: true, // re-submissions update instead of failing
-    }),
+  function showDone(name) {
+    if (name) $("done-title").textContent = `Thank you, ${name}.`;
+    $("view-form").hidden = true;
+    const done = $("view-done");
+    done.hidden = false;
+    done.focus();
+  }
+
+  document.addEventListener("submit", async (e) => {
+    const form = e.target;
+    if (!form || form.id !== "signup") return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const btn = $("f-submit");
+    if (btn.disabled) return; // block double taps
+
+    const fd = new FormData(form);
+    const payload = {
+      email: String(fd.get("email") || "").trim(),
+      area: String(fd.get("area") || ""),
+      first_name: String(fd.get("first_name") || "").trim(),
+      whatsapp: String(fd.get("whatsapp") || "").trim(),
+      consent: $("f-consent").checked,
+      company: String(fd.get("company") || ""),
+    };
+
+    clearErrors();
+    const bad = validate(payload);
+    if (bad) return showError(bad[0], bad[1]);
+
+    setBusy(btn, true);
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const out = await res.json().catch(() => ({}));
+      if (res.ok && out.ok) {
+        form.reset();
+        showDone(payload.first_name);
+      } else {
+        showError(out.field, out.error || "Something went wrong. Please try again.");
+      }
+    } catch {
+      showError(null, "Connection problem. Please check your internet and try again.");
+    } finally {
+      setBusy(btn, false);
+    }
+  }, true);
+
+  // Reset the modal to the form view each time it closes, so it's ready for reuse
+  const modal = $("join-modal");
+  if (modal) modal.addEventListener("close", () => {
+    $("view-form").hidden = false;
+    $("view-done").hidden = true;
+    $("done-title").textContent = "Thank you.";
+    clearErrors();
   });
-
-  if (!contactRes.ok) {
-    const detail = await contactRes.text();
-    console.log("Brevo contact error", contactRes.status, detail);
-    return json({ ok: false, error: "Something went wrong. Please try again." }, 502);
-  }
-
-  // 2) Notify your inbox (failure here should not fail the signup)
-  try {
-    await fetch(`${BREVO}/smtp/email`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        sender: { name: "sabi. waitlist", email: env.SENDER_EMAIL },
-        to: [{ email: env.NOTIFY_EMAIL }],
-        replyTo: { email },
-        subject: `New waitlist signup: ${area}`,
-        htmlContent: `
-          <h3>New sabi. waitlist signup</h3>
-          <p><b>Email:</b> ${esc(email)}<br>
-          <b>Area:</b> ${esc(area)}<br>
-          <b>First name:</b> ${esc(firstName || "-")}<br>
-          <b>WhatsApp:</b> ${esc(whatsapp || "-")}<br>
-          <b>Time:</b> ${new Date().toISOString()}</p>`,
-      }),
-    });
-  } catch (e) {
-    console.log("Notify email failed", e);
-  }
-
-  return json({ ok: true });
-}
-
-// Converts 0801 234 5678 / 801... / 234801... / +234801... into +2348012345678
-function normalizeNigerianPhone(raw) {
-  if (!raw) return "";
-  let d = String(raw).replace(/\D/g, "");
-  if (d.startsWith("234")) d = d.slice(3);
-  if (d.startsWith("0")) d = d.slice(1);
-  return /^[789]\d{9}$/.test(d) ? `+234${d}` : "";
-}
-
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "content-type": "application/json" },
-  });
-}
+})();

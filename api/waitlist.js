@@ -8,7 +8,16 @@ const AREAS = new Set([
   "Gbagada", "Festac", "Ikorodu", "Other Lagos area", "Outside Lagos",
 ]);
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const PHONE_RE = /^\+234\d{10}$/;
+
+// Same rules as functions/api/waitlist.js (Cloudflare):
+// 0801 234 5678 / 801... / 234801... / +234801... -> +2348012345678
+function normalizeNigerianPhone(raw) {
+  if (!raw) return "";
+  let d = String(raw).replace(/\D/g, "");
+  if (d.startsWith("234")) d = d.slice(3);
+  if (d.startsWith("0")) d = d.slice(1);
+  return /^[789]\d{9}$/.test(d) ? `+234${d}` : "";
+}
 
 const clean = (v, max) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -32,12 +41,16 @@ export default async function handler(req, res) {
   const email = clean(body.email, 254).toLowerCase();
   const area = clean(body.area, 40);
   const firstName = clean(body.first_name, 60);
-  const whatsapp = clean(body.whatsapp, 20);
+  const rawPhone = clean(body.whatsapp, 20);
+  const whatsapp = normalizeNigerianPhone(rawPhone);
 
-  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "Check your email address. It should look like name@example.com." });
-  if (!AREAS.has(area)) return res.status(400).json({ error: "Choose your area so we know where to launch first." });
-  if (whatsapp && !PHONE_RE.test(whatsapp)) return res.status(400).json({ error: "Use a Nigerian number, like 0801 234 5678." });
-  if (body.age_confirmed !== true) return res.status(400).json({ error: "Please confirm you're 18 or older to join." });
+  // Accepts both form scripts: waitlist-form.js sends `consent`, the older main.js sent `age_confirmed`
+  const consent = body.consent === true || body.age_confirmed === true;
+
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, field: "email", error: "Please enter a valid email." });
+  if (!AREAS.has(area)) return res.status(400).json({ ok: false, field: "area", error: "Please choose your area." });
+  if (rawPhone && !whatsapp) return res.status(400).json({ ok: false, field: "phone", error: "Please enter a valid Nigerian number, e.g. 0801 234 5678." });
+  if (!consent) return res.status(400).json({ ok: false, field: "consent", error: "Please confirm you're 18 or older to join." });
 
   const signup = {
     email,

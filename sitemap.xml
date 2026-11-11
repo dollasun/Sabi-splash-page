@@ -3,16 +3,16 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
-    <loc>https://sabi-splash-page.vercel.app/</loc>
+    <loc>https://getsabi.ng/</loc>
     <lastmod>2026-11-11</lastmod>
     <image:image>
-      <image:loc>https://sabi-splash-page.vercel.app/assets/hero.jpg</image:loc>
+      <image:loc>https://getsabi.ng/assets/hero.jpg</image:loc>
     </image:image>
     <video:video>
-      <video:thumbnail_loc>https://sabi-splash-page.vercel.app/assets/poster-v2.jpg</video:thumbnail_loc>
+      <video:thumbnail_loc>https://getsabi.ng/assets/poster-v2.jpg</video:thumbnail_loc>
       <video:title>How sabi. works: six private steps, from your door to your results</video:title>
       <video:description>Animated walkthrough, no sound. Order online, delivered discreetly, collect your sample, we arrange collection, off to the lab, results privately.</video:description>
-      <video:content_loc>https://sabi-splash-page.vercel.app/assets/walkthrough-v2.mp4</video:content_loc>
+      <video:content_loc>https://getsabi.ng/assets/walkthrough-v2.mp4</video:content_loc>
     </video:video>
   </url>
 </urlset>

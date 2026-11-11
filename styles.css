@@ -301,9 +301,9 @@ input[aria-invalid=true]:focus,select[aria-invalid=true]:focus{box-shadow:0 0 0 
 
 .btn-submit{width:100%;margin-top:4px}
 .spinner{position:absolute;width:20px;height:20px;border-radius:50%;border:2px solid color-mix(in srgb,var(--cream) 30%,transparent);border-top-color:var(--cream);opacity:0;animation:spin .8s linear infinite}
-.btn-submit.loading{cursor:progress}
-.btn-submit.loading .btn-label{opacity:0}
-.btn-submit.loading .spinner{opacity:1}
+.btn-submit.loading,.btn-submit.is-loading{cursor:progress}
+.btn-submit.loading .btn-label,.btn-submit.is-loading .btn-label{opacity:0}
+.btn-submit.loading .spinner,.btn-submit.is-loading .spinner{opacity:1}
 .btn-label{transition:opacity .2s}
 @keyframes spin{to{transform:rotate(360deg)}}
 
