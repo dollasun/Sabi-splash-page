@@ -1,0 +1,16 @@
+// Cloudflare Workers config for getsabi.ng (deployed by Workers Builds on push to main).
+// Static files are served from the project root; only /api/* runs worker.js first.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sabi-splash-page",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": { "enabled": true }
+  // Brevo settings live in Cloudflare > Workers > sabi-splash-page > Settings > Variables and Secrets:
+  //   BREVO_API_KEY (Secret), BREVO_LIST_ID, NOTIFY_EMAIL, SENDER_EMAIL
+}

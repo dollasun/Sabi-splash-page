@@ -1,0 +1,15 @@
+# Files Cloudflare must NOT publish as public static assets
+.git
+.gitignore
+.assetsignore
+.vercel
+.wrangler
+.DS_Store
+node_modules
+api
+functions
+worker.js
+wrangler.jsonc
+package.json
+vercel.json
+README.md
