@@ -46,7 +46,7 @@ export async function onRequestPost({ request, env }) {
   }
 
   const headers = {
-    "api-key": env.BREVO_API_KEY,
+    "api-key": String(env.BREVO_API_KEY || "").trim(),
     "content-type": "application/json",
     accept: "application/json",
   };
@@ -75,12 +75,17 @@ export async function onRequestPost({ request, env }) {
   if (!contactRes.ok) {
     const detail = await contactRes.text();
     console.log("Brevo contact error", contactRes.status, detail);
+    if (contactRes.status === 401) {
+      // Diagnostics only: key type + length, never the key itself
+      const k = String(env.BREVO_API_KEY || "").trim();
+      console.log("Brevo key check", { type: k.slice(0, k.indexOf("-") + 1) || "(no prefix)", length: k.length });
+    }
     return json({ ok: false, error: "Something went wrong. Please try again." }, 502);
   }
 
   // 2) Notify your inbox (failure here should not fail the signup)
   try {
-    await fetch(`${BREVO}/smtp/email`, {
+    const mailRes = await fetch(`${BREVO}/smtp/email`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -97,6 +102,7 @@ export async function onRequestPost({ request, env }) {
           <b>Time:</b> ${new Date().toISOString()}</p>`,
       }),
     });
+    if (!mailRes.ok) console.log("Notify email error", mailRes.status, await mailRes.text());
   } catch (e) {
     console.log("Notify email failed", e);
   }
